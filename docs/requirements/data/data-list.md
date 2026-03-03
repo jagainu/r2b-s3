@@ -94,8 +94,8 @@
 | 39 | ユーザーID | 対応するユーザー（FK） | クイズ出題・回答 | UUID（FK） | Yes |
 | 40 | ソース | セッションの種別（'quiz' or 'today'） | 結果表示・セッション区別 | String（ENUM） | Yes |
 | 41 | ステータス | セッションの状態（'active' or 'completed'） | finalize処理 | String（ENUM） | Yes |
-| 42 | 作成日時 | セッション開始日時 | - | DateTime | Yes |
-| 43 | 更新日時 | セッション更新日時 | - | DateTime | Yes |
+| 42 | 開始日時（started_at） | セッション開始日時 | - | DateTime | Yes |
+| 43 | 完了日時（completed_at） | セッション完了日時（finalizeまでNULL） | finalize処理 | DateTime | No |
 
 ### クイズ問題（quiz_questions）
 
@@ -112,8 +112,8 @@
 | # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
 |---|---------|------|---------|---------|------|
 | 49 | 選択肢ID | 選択肢の一意識別子 | クイズ出題 | UUID | Yes |
-| 50 | セッションID | 対応するセッション（複合FK） | クイズ出題 | UUID（FK） | Yes |
-| 51 | 問題番号 | 対応する問題番号（複合FK） | クイズ出題 | Integer（FK） | Yes |
+| 50 | 問題ID（question_id） | 対応するquiz_questions（FK） | クイズ出題 | UUID（FK） | Yes |
+| 51 | 表示順（choice_order） | 選択肢の表示順（1〜4） | クイズ出題 | Integer | Yes |
 | 52 | 猫種ID | 選択肢として表示する猫種（FK） | クイズ出題 | UUID（FK） | Yes |
 | 53 | 写真URL | 種類名→写真形式の場合の選択肢写真URL（S3） | クイズ出題 | String（URL） | No |
 | 54 | 作成日時 | レコード作成日時 | - | DateTime | Yes |

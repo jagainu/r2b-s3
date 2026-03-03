@@ -17,6 +17,33 @@ const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
+// CSRFトークンキャッシュ（メモリ上に保持）
+let csrfToken: string | null = null;
+
+/**
+ * CSRFトークンを取得する（キャッシュ付き）
+ * 初回はGET /auth/csrfで取得し、以降はキャッシュを返す
+ */
+async function getCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  const response = await fetch(`${baseURL}/api/v1/auth/csrf`, {
+    credentials: "include",
+  });
+  if (response.ok) {
+    const data = await response.json();
+    csrfToken = data.csrf_token as string;
+    return csrfToken;
+  }
+  return "";
+}
+
+/** CSRFトークンキャッシュをクリア（ログアウト時などに呼び出す） */
+export function clearCsrfToken(): void {
+  csrfToken = null;
+}
+
+const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 /**
  * トークンをリフレッシュする（cookieベース）
  */
@@ -70,6 +97,7 @@ export const customInstance = async <T>(
 ): Promise<T> => {
   const makeRequest = async (): Promise<Response> => {
     const headers = new Headers(options?.headers);
+    const method = (options?.method ?? "GET").toUpperCase();
 
     // Content-Typeが未設定の場合のみデフォルトを設定
     if (
@@ -78,6 +106,12 @@ export const customInstance = async <T>(
       typeof options.body === "string"
     ) {
       headers.set("Content-Type", "application/json");
+    }
+
+    // 状態変更リクエスト（POST/PUT/PATCH/DELETE）にCSRFトークンを付与
+    if (STATE_CHANGING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
+      const token = await getCsrfToken();
+      if (token) headers.set("X-CSRF-Token", token);
     }
 
     return fetch(`${baseURL}${url}`, {
