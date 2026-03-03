@@ -210,7 +210,7 @@ CREATE UNIQUE INDEX idx_users_google_id ON users(google_id) WHERE google_id IS N
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 作成日時 |
 
 **v1スコープ補足**：各猫種の代表特徴を1つ保持。「各猫種の代表特徴を識別できる」がv1ゴール。
-多値属性（複数毛色など）は v2 で `cat_breed_coat_colors` 中間テーブルを追加して対応予定。
+多値属性（複数毛色など）は v2 で `cat_breed_coat_colors` / `cat_breed_coat_patterns` / `cat_breed_coat_lengths` 中間テーブルを実装する（v2必達）。
 
 **インデックス**
 ```sql

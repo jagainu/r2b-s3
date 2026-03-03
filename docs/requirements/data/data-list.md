@@ -94,8 +94,9 @@
 | 39 | ユーザーID | 対応するユーザー（FK） | クイズ出題・回答 | UUID（FK） | Yes |
 | 40 | ソース | セッションの種別（'quiz' or 'today'） | 結果表示・セッション区別 | String（ENUM） | Yes |
 | 41 | ステータス | セッションの状態（'active' or 'completed'） | finalize処理 | String（ENUM） | Yes |
-| 42 | 開始日時（started_at） | セッション開始日時 | - | DateTime | Yes |
-| 43 | 完了日時（completed_at） | セッション完了日時（finalizeまでNULL） | finalize処理 | DateTime | No |
+| 42 | 総問題数（total_questions） | セッション内の問題数（quiz=10, today=1） | finalize集計 | Integer | Yes |
+| 43 | 開始日時（started_at） | セッション開始日時 | - | DateTime | Yes |
+| 44 | 完了日時（completed_at） | セッション完了日時（finalizeまでNULL） | finalize処理 | DateTime | No |
 
 ### クイズ問題（quiz_questions）
 
