@@ -170,6 +170,38 @@ Slice（機能単位）
 └─────────────────────────────────────────────┘
 ```
 
+## エージェント並列実行方針
+
+**独立したタスクは必ず並列で実行すること。**
+
+```yaml
+並列実行すべきケース:
+  - Backend と Frontend の独立した実装（schema-designer + frontend-feature-writer など）
+  - 複数ファイルの探索・調査
+  - 独立した機能スライスの同時実装
+  - テスト実行とコードレビューの同時実行
+
+逐次実行すべきケース:
+  - OpenAPI 出力 → orval 再生成（出力が次のインプット）
+  - テスト RED → GREEN → REFACTOR サイクル内
+  - DB マイグレーション → サーバー起動
+```
+
+**実装例（fullstack-integration から呼び出す場合）:**
+```
+並列: backend-schema-designer + frontend のリサーチ
+↓
+並列: backend-test-writer + frontend-test-writer（独立）
+↓
+並列: backend-repository-layer + backend-service-layer（依存なし）
+↓
+逐次: backend-api-layer → OpenAPI 出力 → orval 再生成
+↓
+並列: frontend-feature-writer + frontend-component-builder（独立）
+```
+
+---
+
 ## 開発フロー
 
 ### Phase 0: 初期セットアップ（r2b-build-sprint3）
