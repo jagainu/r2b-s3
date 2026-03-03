@@ -464,6 +464,8 @@ CREATE INDEX idx_session_results_user ON session_results(user_id, source, comple
 **v1**：「各猫種の代表特徴（毛色・模様・毛の長さ各1値）を識別できる」
 - `cat_breeds` は代表特徴を1カラムずつ保持
 
-**v2 拡張予定**：多値属性対応
-- `cat_breed_coat_colors(cat_breed_id, coat_color_id)` 中間テーブルを追加
-- 「組み合わせを網羅的に覚える」目標は v2 で達成
+**v2 必達要件**：多値属性対応（Must）
+- `cat_breed_coat_colors(cat_breed_id, coat_color_id)` 中間テーブルを実装
+- `cat_breed_coat_patterns(cat_breed_id, coat_pattern_id)` 中間テーブルを実装
+- `cat_breed_coat_lengths(cat_breed_id, coat_length_id)` 中間テーブルを実装
+- CFA基準の毛色・模様・毛の長さの組み合わせを網羅的に学習・出題・正誤集計できることを受け入れ条件とする

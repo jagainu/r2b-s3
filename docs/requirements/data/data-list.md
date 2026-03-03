@@ -161,9 +161,9 @@ cat_breeds
   └── quiz_questions (1:N, correct_cat_breed_id)
 
 quiz_sessions
-  ├── quiz_questions (1:N, 複合PK: session_id + question_number)
-  │     └── quiz_choices (1:N, 複合FK: session_id + question_number)
-  └── quiz_answers (1:N, 複合FK: session_id + question_number, UNIQUE)
+  ├── quiz_questions (1:N, UNIQUE: session_id + question_number)
+  │     └── quiz_choices (1:N, FK: question_id)
+  └── quiz_answers (1:N, FK: session_id + question_number, UNIQUE)
 
 session_results
   └── quiz_sessions (N:1, session_id UNIQUE)

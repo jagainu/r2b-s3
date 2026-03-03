@@ -29,12 +29,12 @@ async function getCsrfToken(): Promise<string> {
   const response = await fetch(`${baseURL}/api/v1/auth/csrf`, {
     credentials: "include",
   });
-  if (response.ok) {
-    const data = await response.json();
-    csrfToken = data.csrf_token as string;
-    return csrfToken;
+  if (!response.ok) {
+    throw new Error(`CSRF token fetch failed: ${response.status}`);
   }
-  return "";
+  const data = await response.json();
+  csrfToken = data.csrf_token as string;
+  return csrfToken;
 }
 
 /** CSRFトークンキャッシュをクリア（ログアウト時などに呼び出す） */
@@ -109,9 +109,10 @@ export const customInstance = async <T>(
     }
 
     // 状態変更リクエスト（POST/PUT/PATCH/DELETE）にCSRFトークンを付与
+    // 取得失敗時はgetCsrfToken()が例外をthrowし、リクエストを中断する
     if (STATE_CHANGING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
       const token = await getCsrfToken();
-      if (token) headers.set("X-CSRF-Token", token);
+      headers.set("X-CSRF-Token", token);
     }
 
     return fetch(`${baseURL}${url}`, {
