@@ -23,10 +23,14 @@
 | 4 | coat_colors | 毛色マスター | マスター |
 | 5 | coat_patterns | 模様マスター | マスター |
 | 6 | coat_lengths | 毛の長さマスター | マスター |
-| 7 | similar_cats | 類似猫の対応関係 | マスター |
-| 8 | wrong_answers | 誤答履歴（ユーザーごと） | トランザクション |
-| 9 | correct_answers | 正解履歴（ユーザーごと・ユニーク） | トランザクション |
-| 10 | session_results | セッション結果（10問完了記録） | トランザクション |
+| 7 | similar_cats | 類似猫の対応関係（DB トリガーで対称性保証） | マスター |
+| 8 | quiz_sessions | クイズセッション管理 | トランザクション |
+| 9 | quiz_questions | セッション内の出題問題（サーバー生成・正解保持） | トランザクション |
+| 10 | quiz_choices | 各問題の選択肢 | トランザクション |
+| 11 | quiz_answers | ユーザーの回答ログ | トランザクション |
+| 12 | wrong_answers | 誤答履歴（ユーザーごと・優先出題用） | トランザクション |
+| 13 | correct_answers | 正解履歴（ユーザーごと・ユニーク） | トランザクション |
+| 14 | session_results | セッション完了結果（サーバー算出） | トランザクション |
 
 ---
 
@@ -83,6 +87,41 @@ erDiagram
         INTEGER priority
     }
 
+    quiz_sessions {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR source "quiz | today"
+        INTEGER total_questions
+        VARCHAR status "active | completed"
+        TIMESTAMP started_at
+        TIMESTAMP completed_at "NULL: 未完了"
+    }
+
+    quiz_questions {
+        UUID id PK
+        UUID session_id FK
+        INTEGER question_number
+        VARCHAR question_type "photo_to_name | name_to_photo"
+        UUID correct_cat_breed_id FK
+    }
+
+    quiz_choices {
+        UUID id PK
+        UUID question_id FK
+        INTEGER choice_order
+        UUID cat_breed_id FK
+        VARCHAR photo_url "NULL: photo_to_name 形式時"
+    }
+
+    quiz_answers {
+        UUID id PK
+        UUID session_id FK
+        INTEGER question_number
+        UUID selected_cat_breed_id FK
+        BOOLEAN is_correct
+        TIMESTAMP answered_at
+    }
+
     wrong_answers {
         UUID id PK
         UUID user_id FK
@@ -101,8 +140,10 @@ erDiagram
     session_results {
         UUID id PK
         UUID user_id FK
-        INTEGER correct_count
-        INTEGER incorrect_count
+        UUID session_id FK "UNIQUE"
+        VARCHAR source "quiz | today"
+        INTEGER correct_count "サーバー算出"
+        INTEGER incorrect_count "サーバー算出"
         TIMESTAMP completed_at
     }
 
@@ -115,8 +156,16 @@ erDiagram
     users ||--o{ wrong_answers : "has"
     users ||--o{ correct_answers : "has"
     users ||--o{ session_results : "has"
+    users ||--o{ quiz_sessions : "has"
     cat_breeds ||--o{ wrong_answers : "referenced_by"
     cat_breeds ||--o{ correct_answers : "referenced_by"
+    quiz_sessions ||--o{ quiz_questions : "has"
+    quiz_sessions ||--o{ quiz_answers : "has"
+    quiz_sessions ||--|| session_results : "produces"
+    quiz_questions ||--o{ quiz_choices : "has"
+    cat_breeds ||--o{ quiz_questions : "correct_answer"
+    cat_breeds ||--o{ quiz_choices : "choice"
+    cat_breeds ||--o{ quiz_answers : "selected"
 ```
 
 ---
@@ -135,11 +184,6 @@ erDiagram
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 更新日時 |
 
-**制約・補足**
-- `email` は UNIQUE → 同一メールの重複登録を防止
-- `google_id` は UNIQUE → 同一Googleアカウントの重複登録を防止
-- `password_hash` と `google_id` はどちらか一方が必ず非NULLになる（アプリ層でバリデーション）
-
 **インデックス**
 ```sql
 CREATE UNIQUE INDEX idx_users_email ON users(email);
@@ -148,36 +192,9 @@ CREATE UNIQUE INDEX idx_users_google_id ON users(google_id) WHERE google_id IS N
 
 ---
 
-### coat_colors（毛色マスター）
+### coat_colors / coat_patterns / coat_lengths（マスター3種）
 
-| カラム名 | 型 | 制約 | 説明 |
-|---------|-----|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 毛色ID |
-| name | VARCHAR(50) | NOT NULL | 毛色名（例：白、黒、茶など） |
-
-**シードデータ例**：白、黒、グレー、茶、クリーム、オレンジ、ブルー、チョコレート、ライラック、シルバー
-
----
-
-### coat_patterns（模様マスター）
-
-| カラム名 | 型 | 制約 | 説明 |
-|---------|-----|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 模様ID |
-| name | VARCHAR(50) | NOT NULL | 模様名（例：単色、トラ、ぶち、ポイントなど） |
-
-**シードデータ例**：単色（ソリッド）、タビー（縞）、バイカラー（ぶち）、カラーポイント、キャリコ（三毛）、トーティ（べっ甲）
-
----
-
-### coat_lengths（毛の長さマスター）
-
-| カラム名 | 型 | 制約 | 説明 |
-|---------|-----|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 毛の長さID |
-| name | VARCHAR(50) | NOT NULL | 毛の長さ名（短毛・長毛） |
-
-**シードデータ例**：短毛、長毛
+各マスターは `id UUID PK` + `name VARCHAR(50) NOT NULL` のみ。シードデータとして初期投入。
 
 ---
 
@@ -186,15 +203,14 @@ CREATE UNIQUE INDEX idx_users_google_id ON users(google_id) WHERE google_id IS N
 | カラム名 | 型 | 制約 | 説明 |
 |---------|-----|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 猫種ID |
-| name | VARCHAR(100) | NOT NULL | 種類名（例：アメリカンショートヘア） |
-| coat_color_id | UUID | NOT NULL, FK → coat_colors(id) | 毛色（代表色） |
-| coat_pattern_id | UUID | NOT NULL, FK → coat_patterns(id) | 模様（代表パターン） |
+| name | VARCHAR(100) | NOT NULL | 種類名 |
+| coat_color_id | UUID | NOT NULL, FK → coat_colors(id) | 毛色（代表色・v1スコープ） |
+| coat_pattern_id | UUID | NOT NULL, FK → coat_patterns(id) | 模様（代表・v1スコープ） |
 | coat_length_id | UUID | NOT NULL, FK → coat_lengths(id) | 毛の長さ |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 作成日時 |
 
-**補足**
-- シードデータとして初期投入（実データは実装フェーズで作成）
-- 毛色・模様・毛の長さは「代表的な特徴」を1つ選択（マルチカラーは別設計になる場合は将来拡張）
+**v1スコープ補足**：各猫種の代表特徴を1つ保持。「各猫種の代表特徴を識別できる」がv1ゴール。
+多値属性（複数毛色など）は v2 で `cat_breed_coat_colors` 中間テーブルを追加して対応予定。
 
 **インデックス**
 ```sql
@@ -211,13 +227,9 @@ CREATE INDEX idx_cat_breeds_coat_length ON cat_breeds(coat_length_id);
 |---------|-----|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 写真ID |
 | cat_breed_id | UUID | NOT NULL, FK → cat_breeds(id) | 対応する猫種 |
-| photo_url | VARCHAR(500) | NOT NULL | S3 に保存された写真の URL |
+| photo_url | VARCHAR(500) | NOT NULL | CloudFront 経由の URL（S3実体） |
 | display_order | INTEGER | NOT NULL | カルーセルの表示順（昇順） |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 作成日時 |
-
-**補足**
-- 写真の実体は S3 に保存。DB には CloudFront 経由の URL を保持
-- `display_order` が小さいほど先に表示。クイズでは代表写真（display_order = 1）を使用
 
 **インデックス**
 ```sql
@@ -241,14 +253,103 @@ UNIQUE(cat_breed_id, similar_cat_breed_id)
 CHECK (cat_breed_id <> similar_cat_breed_id)
 ```
 
-**補足**
-- 手動登録データを `priority` で優先表示（優先度 > 0 が手動登録）
-- 毛色・模様・毛の長さが1つ以上一致する猫は自動抽出（`priority = 0`）でロジック側で計算
-- 解説画面で最大3件を表示
+**対称性保証：DB トリガーで自動挿入**
+
+`similar_cats` は常に対称（A→B を挿入すると B→A も自動挿入）とする。アプリ層の抜け漏れを防ぐため DB トリガーで保証する。
+
+```sql
+CREATE OR REPLACE FUNCTION fn_similar_cats_mirror()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO similar_cats (cat_breed_id, similar_cat_breed_id, priority)
+  VALUES (NEW.similar_cat_breed_id, NEW.cat_breed_id, NEW.priority)
+  ON CONFLICT (cat_breed_id, similar_cat_breed_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_similar_cats_mirror
+AFTER INSERT ON similar_cats
+FOR EACH ROW EXECUTE FUNCTION fn_similar_cats_mirror();
+```
 
 **インデックス**
 ```sql
 CREATE INDEX idx_similar_cats_breed ON similar_cats(cat_breed_id, priority DESC);
+```
+
+---
+
+### quiz_sessions（クイズセッション）
+
+| カラム名 | 型 | 制約 | 説明 |
+|---------|-----|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | セッションID |
+| user_id | UUID | NOT NULL, FK → users(id) ON DELETE CASCADE | ユーザー |
+| source | VARCHAR(10) | NOT NULL, CHECK IN ('quiz','today') | セッション種別 |
+| total_questions | INTEGER | NOT NULL | 問題数（quiz=10, today=1） |
+| status | VARCHAR(10) | NOT NULL, DEFAULT 'active', CHECK IN ('active','completed') | 状態 |
+| started_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 開始日時 |
+| completed_at | TIMESTAMP WITH TIME ZONE | NULL | 完了日時 |
+
+**インデックス**
+```sql
+CREATE INDEX idx_quiz_sessions_user ON quiz_sessions(user_id, started_at DESC);
+```
+
+---
+
+### quiz_questions（出題問題・正解保持）
+
+| カラム名 | 型 | 制約 | 説明 |
+|---------|-----|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 問題ID |
+| session_id | UUID | NOT NULL, FK → quiz_sessions(id) ON DELETE CASCADE | セッション |
+| question_number | INTEGER | NOT NULL | 問題番号（1〜） |
+| question_type | VARCHAR(20) | NOT NULL, CHECK IN ('photo_to_name','name_to_photo') | 出題形式 |
+| correct_cat_breed_id | UUID | NOT NULL, FK → cat_breeds(id) | **正解の猫種（サーバー保持）** |
+
+**制約**
+```sql
+UNIQUE(session_id, question_number)
+```
+
+**補足**：クライアントには `correct_cat_breed_id` を渡さない。回答時にサーバー側で参照して判定する。
+
+---
+
+### quiz_choices（選択肢）
+
+| カラム名 | 型 | 制約 | 説明 |
+|---------|-----|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 選択肢ID |
+| question_id | UUID | NOT NULL, FK → quiz_questions(id) ON DELETE CASCADE | 問題 |
+| choice_order | INTEGER | NOT NULL | 表示順（1〜4） |
+| cat_breed_id | UUID | NOT NULL, FK → cat_breeds(id) | 選択肢の猫種 |
+| photo_url | VARCHAR(500) | NULL | name_to_photo 形式のみ設定（photo_to_name 形式は NULL） |
+
+**制約**
+```sql
+UNIQUE(question_id, choice_order)
+UNIQUE(question_id, cat_breed_id)
+```
+
+---
+
+### quiz_answers（回答ログ）
+
+| カラム名 | 型 | 制約 | 説明 |
+|---------|-----|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 回答ID |
+| session_id | UUID | NOT NULL, FK → quiz_sessions(id) ON DELETE CASCADE | セッション |
+| question_number | INTEGER | NOT NULL | 問題番号 |
+| selected_cat_breed_id | UUID | NOT NULL, FK → cat_breeds(id) | ユーザーが選んだ猫種 |
+| is_correct | BOOLEAN | NOT NULL | 正誤（サーバー判定） |
+| answered_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 回答日時 |
+
+**制約**
+```sql
+UNIQUE(session_id, question_number)  -- 同一問題への二重回答を防止
 ```
 
 ---
@@ -267,12 +368,6 @@ CREATE INDEX idx_similar_cats_breed ON similar_cats(cat_breed_id, priority DESC)
 ```sql
 UNIQUE(user_id, cat_breed_id)
 ```
-
-**補足**
-- ユニーク制約により、同じユーザー×猫種の組み合わせは1レコード
-- 再度間違えた場合は `wrong_count += 1`, `last_wrong_at` を更新（UPSERT）
-- 誤答履歴はリセットなし・累積
-- クイズ出題時に `wrong_count` を重みとして使用（多いほど優先出題）
 
 **インデックス**
 ```sql
@@ -295,10 +390,6 @@ CREATE INDEX idx_wrong_answers_user ON wrong_answers(user_id, wrong_count DESC, 
 UNIQUE(user_id, cat_breed_id)
 ```
 
-**補足**
-- ユニーク制約により、同じユーザー×猫種の組み合わせは1レコード（初回正解のみ記録）
-- 結果画面の「累計覚えた種類数」は `COUNT(*)` で取得
-
 **インデックス**
 ```sql
 CREATE INDEX idx_correct_answers_user ON correct_answers(user_id);
@@ -310,20 +401,24 @@ CREATE INDEX idx_correct_answers_user ON correct_answers(user_id);
 
 | カラム名 | 型 | 制約 | 説明 |
 |---------|-----|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | セッションID |
+| id | UUID | PK, DEFAULT gen_random_uuid() | 結果ID |
 | user_id | UUID | NOT NULL, FK → users(id) ON DELETE CASCADE | ユーザー |
-| correct_count | INTEGER | NOT NULL, CHECK >= 0 | セッション内の正解数 |
-| incorrect_count | INTEGER | NOT NULL, CHECK >= 0 | セッション内の不正解数 |
-| completed_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | セッション完了日時 |
+| session_id | UUID | NOT NULL, FK → quiz_sessions(id), UNIQUE | セッション（1セッション1結果） |
+| source | VARCHAR(10) | NOT NULL, CHECK IN ('quiz','today') | セッション種別 |
+| correct_count | INTEGER | NOT NULL, CHECK >= 0 | 正解数（`quiz_answers` から算出） |
+| incorrect_count | INTEGER | NOT NULL, CHECK >= 0 | 不正解数（`quiz_answers` から算出） |
+| completed_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT NOW() | 完了日時 |
 
-**補足**
-- 10問完了時（「次の問題へ」を10回押した後）に1レコード挿入
-- 正答率の計算 = `correct_count / (correct_count + incorrect_count)`
-- 今日の一匹のセッションも同テーブルで管理（問題数が1問）
+**制約**
+```sql
+UNIQUE(session_id)  -- 1セッションにつき1結果のみ
+```
+
+**補足**：`correct_count` / `incorrect_count` はクライアント申告値ではなく、`quiz_answers` を集計してサーバーが算出した値のみ INSERT する。
 
 **インデックス**
 ```sql
-CREATE INDEX idx_session_results_user ON session_results(user_id, completed_at DESC);
+CREATE INDEX idx_session_results_user ON session_results(user_id, source, completed_at DESC);
 ```
 
 ---
@@ -332,37 +427,38 @@ CREATE INDEX idx_session_results_user ON session_results(user_id, completed_at D
 
 | 項目 | 方針 | 理由 |
 |------|------|------|
-| 毛色・模様・毛の長さ | マスターテーブル分離 | フィルタリング機能・解説での共通表示に活用 |
-| 類似猫の対称性 | 双方向で登録 | A→B、B→A をそれぞれレコードとして持つ（アプリ層で対称挿入） |
-| 誤答・正解の集計 | 非正規化しない | DAU 1,000・ピーク50 RPS では集計クエリで十分対応可能 |
-| 猫写真URL | S3 URL のみ保持 | S3/CloudFront 利用のためファイル実体はDBに持たない |
+| 毛色・模様・毛の長さ | マスターテーブル分離 | フィルタリング・解説での共通表示 |
+| 類似猫の対称性 | DB トリガーで自動保証 | アプリ層の抜け漏れを排除 |
+| 正解判定 | `quiz_questions` サーバー保持 | クライアント申告値依存を排除 |
+| セッション結果算出 | `quiz_answers` 集計（サーバー算出） | スコア改ざんを排除 |
+| 猫写真URL | CloudFront URL のみ保持 | S3実体はストレージ管理 |
 
 ---
 
 ## マイグレーション実行順序
 
 ```
-1. coat_colors
-2. coat_patterns
-3. coat_lengths
-4. cat_breeds（coat_* に依存）
-5. cat_photos（cat_breeds に依存）
-6. similar_cats（cat_breeds に依存）
-7. users
-8. wrong_answers（users, cat_breeds に依存）
-9. correct_answers（users, cat_breeds に依存）
-10. session_results（users に依存）
+1. coat_colors, coat_patterns, coat_lengths
+2. cat_breeds（coat_* に依存）
+3. cat_photos（cat_breeds に依存）
+4. similar_cats（cat_breeds に依存）+ トリガー作成
+5. users
+6. quiz_sessions（users に依存）
+7. quiz_questions（quiz_sessions, cat_breeds に依存）
+8. quiz_choices（quiz_questions, cat_breeds に依存）
+9. quiz_answers（quiz_sessions, cat_breeds に依存）
+10. wrong_answers（users, cat_breeds に依存）
+11. correct_answers（users, cat_breeds に依存）
+12. session_results（users, quiz_sessions に依存）
 ```
 
 ---
 
-## シードデータ方針
+## v1ゴール定義
 
-| テーブル | 方針 |
-|---------|------|
-| coat_colors | 実装フェーズで初期データ投入 |
-| coat_patterns | 実装フェーズで初期データ投入 |
-| coat_lengths | 「短毛」「長毛」の2件 |
-| cat_breeds | CFA 基準の猫種を実装フェーズで投入 |
-| cat_photos | 各猫種3〜5枚を S3 にアップロード後、URL を投入 |
-| similar_cats | 手動登録分は実装フェーズで投入、自動抽出はロジックで処理 |
+**v1**：「各猫種の代表特徴（毛色・模様・毛の長さ各1値）を識別できる」
+- `cat_breeds` は代表特徴を1カラムずつ保持
+
+**v2 拡張予定**：多値属性対応
+- `cat_breed_coat_colors(cat_breed_id, coat_color_id)` 中間テーブルを追加
+- 「組み合わせを網羅的に覚える」目標は v2 で達成
