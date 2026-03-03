@@ -350,6 +350,11 @@ UNIQUE(question_id, cat_breed_id)
 **制約**
 ```sql
 UNIQUE(session_id, question_number)  -- 同一問題への二重回答を防止
+
+-- quiz_questionsへの複合FK（session_id + question_number）
+FOREIGN KEY (session_id, question_number)
+    REFERENCES quiz_questions(session_id, question_number)
+    ON DELETE CASCADE
 ```
 
 ---

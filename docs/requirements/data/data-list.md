@@ -86,15 +86,60 @@
 | 36 | 猫種ID | 正解した猫種（FK） | 累計表示 | UUID（FK） | Yes |
 | 37 | 初回正解日時 | 初めて正解した日時 | 累計表示 | DateTime | Yes |
 
+### クイズセッション（quiz_sessions）
+
+| # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
+|---|---------|------|---------|---------|------|
+| 38 | セッションID | セッションの一意識別子（自動採番） | クイズ出題・回答・finalize | UUID | Yes |
+| 39 | ユーザーID | 対応するユーザー（FK） | クイズ出題・回答 | UUID（FK） | Yes |
+| 40 | ソース | セッションの種別（'quiz' or 'today'） | 結果表示・セッション区別 | String（ENUM） | Yes |
+| 41 | ステータス | セッションの状態（'active' or 'completed'） | finalize処理 | String（ENUM） | Yes |
+| 42 | 作成日時 | セッション開始日時 | - | DateTime | Yes |
+| 43 | 更新日時 | セッション更新日時 | - | DateTime | Yes |
+
+### クイズ問題（quiz_questions）
+
+| # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
+|---|---------|------|---------|---------|------|
+| 44 | セッションID | 対応するセッション（FK） | クイズ出題・回答 | UUID（FK） | Yes |
+| 45 | 問題番号 | セッション内の問題番号（1-10） | クイズ出題・回答 | Integer | Yes |
+| 46 | 問題形式 | 出題形式（'photo_to_name' or 'name_to_photo'） | クイズ出題 | String（ENUM） | Yes |
+| 47 | 正解猫種ID | **サーバー保持・クライアント非公開**の正解猫種（FK） | 回答判定 | UUID（FK） | Yes |
+| 48 | 作成日時 | レコード作成日時 | - | DateTime | Yes |
+
+### クイズ選択肢（quiz_choices）
+
+| # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
+|---|---------|------|---------|---------|------|
+| 49 | 選択肢ID | 選択肢の一意識別子 | クイズ出題 | UUID | Yes |
+| 50 | セッションID | 対応するセッション（複合FK） | クイズ出題 | UUID（FK） | Yes |
+| 51 | 問題番号 | 対応する問題番号（複合FK） | クイズ出題 | Integer（FK） | Yes |
+| 52 | 猫種ID | 選択肢として表示する猫種（FK） | クイズ出題 | UUID（FK） | Yes |
+| 53 | 写真URL | 種類名→写真形式の場合の選択肢写真URL（S3） | クイズ出題 | String（URL） | No |
+| 54 | 作成日時 | レコード作成日時 | - | DateTime | Yes |
+
+### クイズ回答ログ（quiz_answers）
+
+| # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
+|---|---------|------|---------|---------|------|
+| 55 | 回答ID | 回答の一意識別子 | 回答保存・finalize集計 | UUID | Yes |
+| 56 | セッションID | 対応するセッション（複合FK） | 回答保存・finalize集計 | UUID（FK） | Yes |
+| 57 | 問題番号 | 回答した問題番号（複合FK・UNIQUE制約で二重回答防止） | 回答保存 | Integer（FK） | Yes |
+| 58 | 選択した猫種ID | ユーザーが選択した猫種（FK） | 回答保存 | UUID（FK） | Yes |
+| 59 | 正解フラグ | サーバーが判定した正解・不正解 | finalize集計 | Boolean | Yes |
+| 60 | 回答日時 | 回答した日時 | - | DateTime | Yes |
+
 ### セッション結果（session_results）
 
 | # | データ名 | 説明 | 関連機能 | データ型 | 必須 |
 |---|---------|------|---------|---------|------|
-| 38 | セッションID | レコードの一意識別子 | 結果表示 | UUID | Yes |
-| 39 | ユーザーID | 対応するユーザー（FK） | 結果表示 | UUID（FK） | Yes |
-| 40 | 正解数 | セッション内の正解数 | 結果表示 | Integer | Yes |
-| 41 | 不正解数 | セッション内の不正解数 | 結果表示 | Integer | Yes |
-| 42 | 実施日時 | セッション完了日時 | 結果表示 | DateTime | Yes |
+| 61 | レコードID | レコードの一意識別子 | 結果表示 | UUID | Yes |
+| 62 | ユーザーID | 対応するユーザー（FK） | 結果表示 | UUID（FK） | Yes |
+| 63 | セッションID | 対応するクイズセッション（FK・UNIQUE） | 結果表示・重複防止 | UUID（FK） | Yes |
+| 64 | ソース | セッション種別（'quiz' or 'today'） | 結果取得フィルタ | String（ENUM） | Yes |
+| 65 | 正解数 | サーバー算出済みの正解数 | 結果表示 | Integer | Yes |
+| 66 | 不正解数 | サーバー算出済みの不正解数 | 結果表示 | Integer | Yes |
+| 67 | 実施日時 | セッション完了日時 | 結果表示 | DateTime | Yes |
 
 ## エンティティ関係サマリー
 
@@ -102,6 +147,7 @@
 users
   ├── wrong_answers (1:N)
   ├── correct_answers (1:N)
+  ├── quiz_sessions (1:N)
   └── session_results (1:N)
 
 cat_breeds
@@ -111,7 +157,16 @@ cat_breeds
   ├── cat_photos (1:N)
   ├── similar_cats (1:N 双方向)
   ├── wrong_answers (1:N)
-  └── correct_answers (1:N)
+  ├── correct_answers (1:N)
+  └── quiz_questions (1:N, correct_cat_breed_id)
+
+quiz_sessions
+  ├── quiz_questions (1:N, 複合PK: session_id + question_number)
+  │     └── quiz_choices (1:N, 複合FK: session_id + question_number)
+  └── quiz_answers (1:N, 複合FK: session_id + question_number, UNIQUE)
+
+session_results
+  └── quiz_sessions (N:1, session_id UNIQUE)
 ```
 
 ## 補足
