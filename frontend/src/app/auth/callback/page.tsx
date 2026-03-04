@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -10,7 +10,7 @@ import Button from "@mui/material/Button";
 
 import { useGoogleAuth } from "@/features/auth";
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const googleAuthMutation = useGoogleAuth();
@@ -23,13 +23,7 @@ export default function GoogleCallbackPage() {
     const code = searchParams.get("code");
     const error = searchParams.get("error");
 
-    if (error) {
-      return;
-    }
-
-    if (!code) {
-      return;
-    }
+    if (error || !code) return;
 
     const redirectUri = `${window.location.origin}/auth/callback`;
 
@@ -47,15 +41,7 @@ export default function GoogleCallbackPage() {
 
   if (errorFromGoogle) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          p: 2,
-        }}
-      >
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", p: 2 }}>
         <Box textAlign="center">
           <Alert severity="error" sx={{ mb: 2 }}>
             Google 認証がキャンセルされました
@@ -70,15 +56,7 @@ export default function GoogleCallbackPage() {
 
   if (googleAuthMutation.error) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          p: 2,
-        }}
-      >
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", p: 2 }}>
         <Box textAlign="center">
           <Alert severity="error" sx={{ mb: 2 }}>
             {googleAuthMutation.error.message}
@@ -92,20 +70,21 @@ export default function GoogleCallbackPage() {
   }
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        gap: 2,
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 2 }}>
       <CircularProgress />
-      <Typography color="text.secondary">
-        Google 認証を処理しています...
-      </Typography>
+      <Typography color="text.secondary">Google 認証を処理しています...</Typography>
     </Box>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <GoogleCallbackContent />
+    </Suspense>
   );
 }

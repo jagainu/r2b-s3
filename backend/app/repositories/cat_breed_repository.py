@@ -24,7 +24,7 @@ class CatBreedRepository:
             .order_by(CatBreed.name)
         )
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())
 
     async def get_filtered(
         self,
@@ -50,7 +50,7 @@ class CatBreedRepository:
 
         stmt = stmt.order_by(CatBreed.name)
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())
 
     async def get_by_id(self, breed_id: uuid.UUID) -> CatBreed | None:
         """IDで猫種を取得する（写真・属性込み）。"""
@@ -65,7 +65,7 @@ class CatBreedRepository:
             .where(CatBreed.id == breed_id)
         )
         result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+        return result.unique().scalar_one_or_none()
 
     async def get_similar(
         self, breed_id: uuid.UUID, *, limit: int = 3
@@ -81,4 +81,4 @@ class CatBreedRepository:
             .limit(limit)
         )
         result = await self.db.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())
