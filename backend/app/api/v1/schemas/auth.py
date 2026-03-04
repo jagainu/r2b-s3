@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
@@ -20,6 +20,11 @@ class UserResponse(BaseModel):
     username: str
 
     model_config = {"from_attributes": True}
+
+
+class GoogleAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str
 
 
 class CsrfResponse(BaseModel):

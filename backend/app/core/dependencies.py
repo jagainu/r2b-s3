@@ -24,6 +24,7 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 # 認証済みユーザー取得
 # ---------------------------------------------------------------------------
 
+
 async def _get_current_user(
     db: DbSession,
     access_token: Annotated[str | None, Cookie()] = None,
@@ -53,6 +54,7 @@ CurrentUser = Annotated[User, Depends(_get_current_user)]
 # ---------------------------------------------------------------------------
 # CSRF 検証（POST/PUT/PATCH/DELETE で使用）
 # ---------------------------------------------------------------------------
+
 
 async def verify_csrf(
     request: Request,

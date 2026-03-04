@@ -18,10 +18,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
-
 # ---------------------------------------------------------------------------
 # quiz_sessions（クイズセッション）
 # ---------------------------------------------------------------------------
+
 
 class QuizSession(Base):
     __tablename__ = "quiz_sessions"
@@ -73,6 +73,7 @@ class QuizSession(Base):
 # quiz_questions（出題問題・正解保持）
 # ---------------------------------------------------------------------------
 
+
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
 
@@ -114,6 +115,7 @@ class QuizQuestion(Base):
 # quiz_choices（選択肢）
 # ---------------------------------------------------------------------------
 
+
 class QuizChoice(Base):
     __tablename__ = "quiz_choices"
 
@@ -149,6 +151,7 @@ class QuizChoice(Base):
 # quiz_answers（回答ログ）
 # ---------------------------------------------------------------------------
 
+
 class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
 
@@ -180,9 +183,7 @@ class QuizAnswer(Base):
     selected_cat_breed: Mapped["CatBreed"] = relationship()  # noqa: F821
 
     __table_args__ = (
-        UniqueConstraint(
-            "session_id", "question_number", name="uq_quiz_answers"
-        ),
+        UniqueConstraint("session_id", "question_number", name="uq_quiz_answers"),
         # quiz_questions への複合 FK（session_id + question_number）
         ForeignKeyConstraint(
             ["session_id", "question_number"],
@@ -196,6 +197,7 @@ class QuizAnswer(Base):
 # ---------------------------------------------------------------------------
 # wrong_answers（誤答履歴）
 # ---------------------------------------------------------------------------
+
 
 class WrongAnswer(Base):
     __tablename__ = "wrong_answers"
@@ -240,6 +242,7 @@ class WrongAnswer(Base):
 # correct_answers（正解履歴）
 # ---------------------------------------------------------------------------
 
+
 class CorrectAnswer(Base):
     __tablename__ = "correct_answers"
 
@@ -275,6 +278,7 @@ class CorrectAnswer(Base):
 # ---------------------------------------------------------------------------
 # session_results（セッション結果）
 # ---------------------------------------------------------------------------
+
 
 class SessionResult(Base):
     __tablename__ = "session_results"

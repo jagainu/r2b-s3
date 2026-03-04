@@ -1,16 +1,25 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
-
 # ---------------------------------------------------------------------------
 # マスター3種：coat_colors / coat_patterns / coat_lengths
 # ---------------------------------------------------------------------------
+
 
 class CoatColor(Base):
     __tablename__ = "coat_colors"
@@ -57,6 +66,7 @@ class CoatLength(Base):
 # ---------------------------------------------------------------------------
 # cat_breeds（猫種）
 # ---------------------------------------------------------------------------
+
 
 class CatBreed(Base):
     __tablename__ = "cat_breeds"
@@ -117,6 +127,7 @@ class CatBreed(Base):
 # cat_photos（猫写真）
 # ---------------------------------------------------------------------------
 
+
 class CatPhoto(Base):
     __tablename__ = "cat_photos"
 
@@ -141,14 +152,13 @@ class CatPhoto(Base):
 
     cat_breed: Mapped["CatBreed"] = relationship(back_populates="photos")
 
-    __table_args__ = (
-        Index("idx_cat_photos_breed", "cat_breed_id", "display_order"),
-    )
+    __table_args__ = (Index("idx_cat_photos_breed", "cat_breed_id", "display_order"),)
 
 
 # ---------------------------------------------------------------------------
 # similar_cats（類似猫）
 # ---------------------------------------------------------------------------
+
 
 class SimilarCat(Base):
     __tablename__ = "similar_cats"
@@ -181,7 +191,11 @@ class SimilarCat(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("cat_breed_id", "similar_cat_breed_id", name="uq_similar_cats"),
-        CheckConstraint("cat_breed_id <> similar_cat_breed_id", name="ck_similar_cats_no_self"),
+        UniqueConstraint(
+            "cat_breed_id", "similar_cat_breed_id", name="uq_similar_cats"
+        ),
+        CheckConstraint(
+            "cat_breed_id <> similar_cat_breed_id", name="ck_similar_cats_no_self"
+        ),
         Index("idx_similar_cats_breed", "cat_breed_id", "priority"),
     )

@@ -1,5 +1,12 @@
 from app.models.base import Base, TimestampMixin
-from app.models.masters import CatBreed, CatPhoto, CoatColor, CoatLength, CoatPattern, SimilarCat
+from app.models.masters import (
+    CatBreed,
+    CatPhoto,
+    CoatColor,
+    CoatLength,
+    CoatPattern,
+    SimilarCat,
+)
 from app.models.quiz import (
     CorrectAnswer,
     QuizAnswer,

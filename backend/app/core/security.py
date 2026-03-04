@@ -1,16 +1,16 @@
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
 
 from app.core.config import settings
 
-
 # ---------------------------------------------------------------------------
 # パスワード（bcrypt を直接使用）
 # ---------------------------------------------------------------------------
+
 
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -24,8 +24,9 @@ def verify_password(plain: str, hashed: str) -> bool:
 # JWT
 # ---------------------------------------------------------------------------
 
+
 def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": subject,
         "type": token_type,
@@ -33,7 +34,9 @@ def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> st
         "exp": now + expires_delta,
         "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def create_access_token(user_id: str) -> str:
@@ -68,6 +71,7 @@ def decode_token(token: str, expected_type: str) -> str:
 # ---------------------------------------------------------------------------
 # CSRF
 # ---------------------------------------------------------------------------
+
 
 def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)

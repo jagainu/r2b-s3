@@ -110,6 +110,47 @@
         }
       }
     },
+    "/api/v1/auth/google": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Auth",
+        "operationId": "google_auth_api_v1_auth_google_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "tags": [
@@ -304,10 +345,870 @@
           }
         }
       }
+    },
+    "/api/v1/cat-breeds": {
+      "get": {
+        "tags": [
+          "cat-breeds"
+        ],
+        "summary": "Get Cat Breeds",
+        "description": "猫種一覧を取得する（フィルタ対応）。",
+        "operationId": "get_cat_breeds_api_v1_cat_breeds_get",
+        "parameters": [
+          {
+            "name": "coat_color_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Coat Color Id"
+            }
+          },
+          {
+            "name": "coat_pattern_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Coat Pattern Id"
+            }
+          },
+          {
+            "name": "coat_length_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Coat Length Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatBreedListItem"
+                  },
+                  "title": "Response Get Cat Breeds Api V1 Cat Breeds Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cat-breeds/{breed_id}": {
+      "get": {
+        "tags": [
+          "cat-breeds"
+        ],
+        "summary": "Get Cat Breed Detail",
+        "description": "猫種の詳細情報を取得する。",
+        "operationId": "get_cat_breed_detail_api_v1_cat_breeds__breed_id__get",
+        "parameters": [
+          {
+            "name": "breed_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Breed Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatBreedDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cat-breeds/{breed_id}/similar": {
+      "get": {
+        "tags": [
+          "cat-breeds"
+        ],
+        "summary": "Get Similar Cats",
+        "description": "類似猫リストを取得する。",
+        "operationId": "get_similar_cats_api_v1_cat_breeds__breed_id__similar_get",
+        "parameters": [
+          {
+            "name": "breed_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Breed Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SimilarCatResponse"
+                  },
+                  "title": "Response Get Similar Cats Api V1 Cat Breeds  Breed Id  Similar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/masters/coat-colors": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Get Coat Colors",
+        "description": "毛色マスター一覧を取得する。",
+        "operationId": "get_coat_colors_api_v1_masters_coat_colors_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MasterItemResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Coat Colors Api V1 Masters Coat Colors Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/masters/coat-patterns": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Get Coat Patterns",
+        "description": "模様マスター一覧を取得する。",
+        "operationId": "get_coat_patterns_api_v1_masters_coat_patterns_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MasterItemResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Coat Patterns Api V1 Masters Coat Patterns Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/masters/coat-lengths": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Get Coat Lengths",
+        "description": "毛の長さマスター一覧を取得する。",
+        "operationId": "get_coat_lengths_api_v1_masters_coat_lengths_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MasterItemResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Coat Lengths Api V1 Masters Coat Lengths Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quiz/sessions": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Create Quiz Session",
+        "description": "クイズセッションを作成し、10問を一括生成する。",
+        "operationId": "create_quiz_session_api_v1_quiz_sessions_post",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          },
+          {
+            "name": "csrf_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Csrf Token"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quiz/today": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Get Today Quiz",
+        "description": "今日の一匹クイズを取得する。",
+        "operationId": "get_today_quiz_api_v1_quiz_today_get",
+        "parameters": [
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayQuizResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quiz/answer": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Submit Answer",
+        "description": "クイズ回答を送信する。正解判定はサーバー側で行う。",
+        "operationId": "submit_answer_api_v1_quiz_answer_post",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          },
+          {
+            "name": "csrf_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Csrf Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quiz/sessions/{session_id}/finalize": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "summary": "Finalize Session",
+        "description": "セッションを完了し、結果をサーバー側で算出する。",
+        "operationId": "finalize_session_api_v1_quiz_sessions__session_id__finalize_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          },
+          {
+            "name": "csrf_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Csrf Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/stats": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get User Stats",
+        "description": "ユーザー統計（累計覚えた種類数）を取得する。",
+        "operationId": "get_user_stats_api_v1_users_me_stats_get",
+        "parameters": [
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/sessions/latest": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get Latest Session",
+        "description": "最新セッション結果を取得する。",
+        "operationId": "get_latest_session_api_v1_users_me_sessions_latest_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "セッション種別 (quiz / today)",
+              "title": "Source"
+            },
+            "description": "セッション種別 (quiz / today)"
+          },
+          {
+            "name": "access_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Access Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AnswerRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "question_number": {
+            "type": "integer",
+            "title": "Question Number"
+          },
+          "selected_cat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Selected Cat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "question_number",
+          "selected_cat_id"
+        ],
+        "title": "AnswerRequest",
+        "description": "POST /quiz/answer のリクエスト"
+      },
+      "AnswerResponse": {
+        "properties": {
+          "is_correct": {
+            "type": "boolean",
+            "title": "Is Correct"
+          },
+          "correct_cat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Correct Cat Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_correct",
+          "correct_cat_id"
+        ],
+        "title": "AnswerResponse",
+        "description": "POST /quiz/answer のレスポンス"
+      },
+      "CatBreedDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "coat_color": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "coat_pattern": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "coat_length": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/CatPhotoResponse"
+            },
+            "type": "array",
+            "title": "Photos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "coat_color",
+          "coat_pattern",
+          "coat_length",
+          "photos"
+        ],
+        "title": "CatBreedDetailResponse",
+        "description": "猫種詳細レスポンス（GET /cat-breeds/{id}）"
+      },
+      "CatBreedListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "coat_color": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "coat_pattern": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "coat_length": {
+            "$ref": "#/components/schemas/CoatAttributeResponse"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "coat_color",
+          "coat_pattern",
+          "coat_length"
+        ],
+        "title": "CatBreedListItem",
+        "description": "猫種一覧のアイテム（GET /cat-breeds）"
+      },
+      "CatPhotoResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "display_order"
+        ],
+        "title": "CatPhotoResponse",
+        "description": "猫写真レスポンス"
+      },
+      "CoatAttributeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "CoatAttributeResponse",
+        "description": "毛色・模様・毛の長さの共通レスポンス"
+      },
       "CsrfResponse": {
         "properties": {
           "csrf_token": {
@@ -321,6 +1222,65 @@
         ],
         "title": "CsrfResponse"
       },
+      "FinalizeResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "correct_count": {
+            "type": "integer",
+            "title": "Correct Count"
+          },
+          "incorrect_count": {
+            "type": "integer",
+            "title": "Incorrect Count"
+          },
+          "correct_rate": {
+            "type": "number",
+            "title": "Correct Rate"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "source",
+          "correct_count",
+          "incorrect_count",
+          "correct_rate",
+          "completed_at"
+        ],
+        "title": "FinalizeResponse",
+        "description": "POST /quiz/sessions/{session_id}/finalize のレスポンス"
+      },
+      "GoogleAuthRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "title": "Redirect Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "redirect_uri"
+        ],
+        "title": "GoogleAuthRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -333,6 +1293,47 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LatestSessionResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "correct_count": {
+            "type": "integer",
+            "title": "Correct Count"
+          },
+          "incorrect_count": {
+            "type": "integer",
+            "title": "Incorrect Count"
+          },
+          "correct_rate": {
+            "type": "number",
+            "title": "Correct Rate"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "source",
+          "correct_count",
+          "incorrect_count",
+          "correct_rate",
+          "completed_at"
+        ],
+        "title": "LatestSessionResponse",
+        "description": "最新セッション結果レスポンス。\n\nsession_results を user_id + source で最新1件取得した結果。"
       },
       "LoginRequest": {
         "properties": {
@@ -352,6 +1353,135 @@
           "password"
         ],
         "title": "LoginRequest"
+      },
+      "MasterItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "MasterItemResponse",
+        "description": "マスターデータの共通レスポンス"
+      },
+      "QuizChoiceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "QuizChoiceResponse",
+        "description": "選択肢の統一レスポンス。\n\nphoto_to_name: id + name が設定\nname_to_photo: id + photo_url が設定"
+      },
+      "QuizQuestionResponse": {
+        "properties": {
+          "question_number": {
+            "type": "integer",
+            "title": "Question Number"
+          },
+          "question_type": {
+            "type": "string",
+            "title": "Question Type"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "cat_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cat Name"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/QuizChoiceResponse"
+            },
+            "type": "array",
+            "title": "Choices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_number",
+          "question_type",
+          "choices"
+        ],
+        "title": "QuizQuestionResponse",
+        "description": "問題1件のレスポンス。\n\nquestion_type に応じて photo_url / cat_name / choices の中身が変わる。\n- photo_to_name: photo_url あり, choices は name のみ\n- name_to_photo: cat_name あり, choices は photo_url のみ"
+      },
+      "QuizSessionResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuizQuestionResponse"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "questions"
+        ],
+        "title": "QuizSessionResponse",
+        "description": "POST /quiz/sessions のレスポンス"
       },
       "RegisterRequest": {
         "properties": {
@@ -380,6 +1510,92 @@
         ],
         "title": "RegisterRequest"
       },
+      "SimilarCatResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "SimilarCatResponse",
+        "description": "類似猫レスポンス（GET /cat-breeds/{id}/similar）"
+      },
+      "TodayQuizResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "question_type": {
+            "type": "string",
+            "title": "Question Type"
+          },
+          "question_number": {
+            "type": "integer",
+            "title": "Question Number",
+            "default": 1
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "cat_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cat Name"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/QuizChoiceResponse"
+            },
+            "type": "array",
+            "title": "Choices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "question_type",
+          "choices"
+        ],
+        "title": "TodayQuizResponse",
+        "description": "GET /quiz/today のレスポンス（1問のみ）"
+      },
       "UserResponse": {
         "properties": {
           "id": {
@@ -403,6 +1619,20 @@
           "username"
         ],
         "title": "UserResponse"
+      },
+      "UserStatsResponse": {
+        "properties": {
+          "total_correct_breeds": {
+            "type": "integer",
+            "title": "Total Correct Breeds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_correct_breeds"
+        ],
+        "title": "UserStatsResponse",
+        "description": "ユーザー統計レスポンス。\n\ncorrect_answers テーブルの件数（UNIQUE制約により自動でユニーク数）。"
       },
       "ValidationError": {
         "properties": {

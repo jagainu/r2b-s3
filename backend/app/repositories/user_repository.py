@@ -18,6 +18,10 @@ class UserRepository:
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
+    async def get_by_google_id(self, google_id: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.google_id == google_id))
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         email: str,
@@ -32,6 +36,15 @@ class UserRepository:
             google_id=google_id,
         )
         self.db.add(user)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user
+
+    async def update_google_id(self, user_id: uuid.UUID, google_id: str) -> User | None:
+        user = await self.get_by_id(user_id)
+        if user is None:
+            return None
+        user.google_id = google_id
         await self.db.flush()
         await self.db.refresh(user)
         return user

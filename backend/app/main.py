@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router as v1_router
 from app.core.config import settings
@@ -29,3 +32,10 @@ app.add_middleware(
 )
 
 app.include_router(v1_router, prefix=settings.API_V1_PREFIX)
+
+# 開発用: ローカルの猫画像を /static で配信
+_static_dir = Path(__file__).parent.parent.parent / "data" / "cat_images"
+if _static_dir.exists():
+    app.mount(
+        "/static/cat_images", StaticFiles(directory=str(_static_dir)), name="cat_images"
+    )
