@@ -26,11 +26,30 @@ export function QuizPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const { mutate, isPending } = useCreateQuizSession();
 
-  // sessionId がない場合は新規セッションを作成
+  // セッションデータの取得: sessionStorage キャッシュ or 新規作成
   useEffect(() => {
-    if (!sessionId && !sessionData && !isPending) {
+    if (sessionData || isPending) return;
+
+    if (sessionId) {
+      // sessionStorage からキャッシュ済みデータを復元
+      const cached = sessionStorage.getItem(`quiz-session-${sessionId}`);
+      if (cached) {
+        setSessionData(JSON.parse(cached));
+      }
+      // キャッシュがない場合は新規セッションを作成
+      else {
+        mutate(undefined, {
+          onSuccess: (data) => {
+            sessionStorage.setItem(`quiz-session-${data.session_id}`, JSON.stringify(data));
+            setSessionData(data);
+          },
+        });
+      }
+    } else {
+      // sessionId なし: 新規セッションを作成
       mutate(undefined, {
         onSuccess: (data) => {
+          sessionStorage.setItem(`quiz-session-${data.session_id}`, JSON.stringify(data));
           setSessionData(data);
         },
       });

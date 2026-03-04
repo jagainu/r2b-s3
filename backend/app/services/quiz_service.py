@@ -301,14 +301,14 @@ class QuizService:
             if question_type == "photo_to_name":
                 responses.append(
                     QuizChoiceResponse(
-                        id=choice.id,
+                        id=choice.cat_breed_id,
                         name=breed.name if breed else None,
                     )
                 )
             else:
                 responses.append(
                     QuizChoiceResponse(
-                        id=choice.id,
+                        id=choice.cat_breed_id,
                         photo_url=choice.photo_url,
                     )
                 )
@@ -438,14 +438,14 @@ class QuizService:
             if question_type == "photo_to_name":
                 choice_responses.append(
                     QuizChoiceResponse(
-                        id=choice.id,
+                        id=choice.cat_breed_id,
                         name=choice.cat_breed.name,
                     )
                 )
             else:
                 choice_responses.append(
                     QuizChoiceResponse(
-                        id=choice.id,
+                        id=choice.cat_breed_id,
                         photo_url=choice.photo_url,
                     )
                 )

@@ -160,6 +160,16 @@ export const customInstance = async <T>(
       ? null
       : await response.json();
 
+  // 4xx/5xx エラーはthrowしてTanStack Queryのonerrorハンドラに渡す
+  if (!response.ok) {
+    const message = data?.detail
+      ? typeof data.detail === "string"
+        ? data.detail
+        : JSON.stringify(data.detail)
+      : `HTTP Error ${response.status}`;
+    throw new Error(message);
+  }
+
   // レスポンスオブジェクトを構築
   return {
     data,

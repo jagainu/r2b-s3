@@ -34,7 +34,7 @@ app.add_middleware(
 app.include_router(v1_router, prefix=settings.API_V1_PREFIX)
 
 # 開発用: ローカルの猫画像を /static で配信
-_static_dir = Path(__file__).parent.parent.parent / "data" / "cat_images"
+_static_dir = Path(__file__).parent.parent / "data" / "cat_images"
 if _static_dir.exists():
     app.mount(
         "/static/cat_images", StaticFiles(directory=str(_static_dir)), name="cat_images"

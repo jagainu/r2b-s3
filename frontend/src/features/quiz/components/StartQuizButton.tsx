@@ -13,7 +13,8 @@ export function StartQuizButton() {
   const handleClick = () => {
     mutate(undefined, {
       onSuccess: (data) => {
-        // session_id をクエリパラメータで渡してクイズ画面へ遷移
+        // セッションデータを sessionStorage にキャッシュしてクイズ画面へ遷移
+        sessionStorage.setItem(`quiz-session-${data.session_id}`, JSON.stringify(data));
         router.push(`/quiz?sessionId=${data.session_id}`);
       },
     });
