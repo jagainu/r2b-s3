@@ -25,6 +25,7 @@ out/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+infrastructure/backend.tf
 
 # IDE
 .idea/

@@ -1,0 +1,23 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Environment variables
+.env.local
+.env.*.local
+
+# orval 自動生成（編集禁止）
+src/shared/api/generated/
+
+# Build
+build/
+dist/
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+bun.lockb

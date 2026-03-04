@@ -1,0 +1,27 @@
+# infrastructure/backend.tf.example
+# ─────────────────────────────────────────────────────────────
+# 使い方:
+#   1. このファイルの TODO をすべて埋める
+#   2. cp infrastructure/backend.tf.example infrastructure/backend.tf
+#   3. terraform init を実行する
+#
+# ※ backend.tf は .gitignore で除外済み。リポジトリにコミットしないこと。
+# ─────────────────────────────────────────────────────────────
+terraform {
+  required_version = ">= 1.6"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "r2b-terraform-state"
+    key            = "terraform.tfstate"
+    region         = "ap-northeast-1"
+    dynamodb_table = "r2b-terraform-lock"
+    encrypt        = true
+  }
+}
