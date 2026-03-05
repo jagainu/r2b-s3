@@ -1,13 +1,16 @@
 # infrastructure/main.tf
 # ─────────────────────────────────────────────────────────────
-# クラウド構成図（cloud-diagram.drawio）に基づく AWS インフラ定義
+# ⚠️ このファイルは旧構成です。使用しないでください。
 #
-# 構成概要:
-#   - 同一 VPC 内に stg / prod サブネットを分離（コスト最適化）
-#   - パブリックサブネット: ALB（各環境）
-#   - プライベートサブネット: ECS Fargate + RDS PostgreSQL（各環境）
-#   - ECR: stg/prod 共用（image_tag で環境を区別）
-#   - S3 + CloudFront: 猫写真配信（stg/prod 共用）
+# 新構成（環境ごとに独立した Terraform root）:
+#   environments/shared/  → VPC・ECR・S3・CloudFront（初回のみ）
+#   environments/stg/     → stg ALB・ECS・RDS（最初にデプロイ）
+#   environments/prod/    → prod ALB・ECS・RDS（stg 検証後にデプロイ）
+#
+# デプロイ順序:
+#   1. cd environments/shared && terraform apply
+#   2. cd environments/stg    && terraform apply
+#   3. cd environments/prod   && terraform apply  ← stg 検証後
 # ─────────────────────────────────────────────────────────────
 
 provider "aws" {

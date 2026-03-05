@@ -26,6 +26,9 @@ out/
 *.tfstate.backup
 .terraform.lock.hcl
 infrastructure/backend.tf
+infrastructure/environments/shared/backend.tf
+infrastructure/environments/stg/backend.tf
+infrastructure/environments/prod/backend.tf
 
 # IDE
 .idea/
@@ -35,3 +38,12 @@ infrastructure/backend.tf
 # Logs
 *.log
 logs/
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth-state.json
+.playwright-mcp/
+
+# Screenshots
+*.png

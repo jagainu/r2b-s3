@@ -1,0 +1,122 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  AWS_REGION: ap-northeast-1
+  ECR_REPOSITORY: r2b-backend
+  ECS_CLUSTER: r2b-prod-cluster
+  ECS_SERVICE: backend
+  STG_ECS_CLUSTER: r2b-stg-cluster
+
+permissions:
+  id-token: write   # OIDC
+  contents: read
+
+jobs:
+  migrate:
+    name: Run DB Migration (prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get current task definition
+        id: get-taskdef
+        run: |
+          TASK_DEF_ARN=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "arn=$TASK_DEF_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Run alembic upgrade head
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --task-definition "${{ steps.get-taskdef.outputs.arn }}" \
+            --launch-type FARGATE \
+            --network-configuration "$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --query 'services[0].networkConfiguration' \
+              --output json)" \
+            --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","upgrade","head"]}]}' \
+            --query 'tasks[0].taskArn' \
+            --output text)
+          echo "Waiting for migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+          echo "Migration exit code: $EXIT_CODE"
+          test "$EXIT_CODE" -eq 0
+
+  deploy:
+    name: Deploy to ECS (prod) – promote stg image
+    runs-on: ubuntu-latest
+    needs: migrate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve image tag from stg service
+        id: resolve-image
+        # stg の ECS サービスが使用している image tag をそのまま prod に適用（再ビルドなし）
+        run: |
+          STG_IMAGE=$(aws ecs describe-services \
+            --cluster "$STG_ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].deployments[0].taskDefinition' \
+            --output text \
+            | xargs -I{} aws ecs describe-task-definition --task-definition {} \
+            --query 'taskDefinition.containerDefinitions[0].image' \
+            --output text)
+          echo "Promoting image: $STG_IMAGE"
+          echo "image=$STG_IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Get current prod task definition JSON
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "$ECS_SERVICE" \
+              --query 'services[0].taskDefinition' \
+              --output text)" \
+            --query 'taskDefinition' > task-def.json
+
+      - name: Update image in task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          container-name: backend
+          image: ${{ steps.resolve-image.outputs.image }}
+
+      - name: Deploy to ECS (prod)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

@@ -1,4 +1,4 @@
-# 引き継ぎ資料 — 2026-03-03（更新）
+# 引き継ぎ資料 — 2026-03-04（更新）
 
 ## 進捗サマリー
 
@@ -7,6 +7,7 @@
 | Sprint 3 設計フェーズ（全14ステップ） | ビジネス要件〜API設計・実装設計レビュー | ✅ 完了 |
 | Foundation Phase（Slice 0-1〜0-6） | FastAPI + PostgreSQL + Next.js 基盤構築 | ✅ 完了 |
 | Slice 0-7: Terraform IaC | AWS インフラ定義（公式モジュール方式） | ✅ 完了（apply 未実施） |
+| CI/CD パイプライン | GitHub Actions + Dockerfile + OIDC | ✅ 完了（Secrets 登録・terraform apply 未実施） |
 | Feature 開発（Slice 1〜） | 各機能の実装 | 🔜 **次のステップ** |
 
 ---
@@ -168,7 +169,113 @@ terraform apply -var-file=environments/stg/terraform.tfvars
 
 1. `terraform output stg_rds_endpoint` でエンドポイントを確認
 2. `main.tf` の ECS 環境変数コメントを外して `DATABASE_URL` を設定し再 apply
-3. GitHub Actions に Secret を設定（詳細: `terraform-config.md` の「apply 後にやること」）
+3. GitHub Actions Secret `AWS_ACCOUNT_ID` を登録（下記 CI/CD セクション参照）
+4. `infrastructure/environments/shared/oidc.tf` の `github_repo` を書き換えて `shared` apply → OIDC Role 作成
+
+---
+
+## 実装済み（CI/CD パイプライン）
+
+### 生成ファイル
+
+```
+backend/
+└── Dockerfile                    # multi-stage ビルド（uv + 非 root ユーザー）
+
+.github/workflows/
+├── ci.yml                        # PR 時テスト・lint（並列 3 jobs）
+├── deploy-stg.yml                # main push → stg 自動デプロイ
+└── deploy-prod.yml               # v*.*.* タグ push → prod デプロイ
+
+infrastructure/environments/shared/
+├── oidc.tf                       # GitHub OIDC Provider + IAM Roles（新規）
+└── outputs.tf                    # Role ARN 出力追加
+```
+
+### リリースワークフロー
+
+```
+PR → ci.yml（テスト・lint）
+       ↓ merge to main
+  deploy-stg.yml（自動）
+    1. Docker build → ECR push（tag: sha-XXXXXXX）
+    2. alembic upgrade head（stg RDS）
+    3. ECS stg サービス更新 → stable 待機
+       ↓
+  [手動: stg で動作確認]
+       ↓
+  git tag v1.0.0 && git push origin v1.0.0
+       ↓
+  deploy-prod.yml（タグ push で起動）
+    1. alembic upgrade head（prod RDS）
+    2. stg と同一 image を prod にプロモート（再ビルドなし）
+    3. ECS prod サービス更新 → stable 待機
+```
+
+**stg は「自動」、prod は「意図的な `v*.*.*` タグ push」で分離。**
+prod には stg で検証済みの同一イメージが入るため、安全に昇格できる。
+
+### OIDC IAM Role 設計
+
+| Role | assume 条件 | 権限スコープ |
+|------|------------|------------|
+| `github-actions-stg` | `main` ブランチからのみ | ECR push・stg ECS のみ |
+| `github-actions-prod` | `v*` タグからのみ | prod ECS + stg ECS（image 参照用）|
+
+### セットアップ手順（未実施）
+
+#### 1. `oidc.tf` のリポジトリ名を修正
+
+```hcl
+# infrastructure/environments/shared/oidc.tf
+locals {
+  github_repo = "YOUR_ORG/r2b-s3"  # ← 実際のリポジトリ名に変更
+}
+```
+
+#### 2. GitHub Secrets を登録
+
+| Secret | 内容 | 登録先 |
+|--------|------|--------|
+| `AWS_ACCOUNT_ID` | AWS アカウント ID（12桁） | GitHub → Settings → Secrets → Actions |
+
+Settings URL: `https://github.com/YOUR_ORG/r2b-s3/settings/secrets/actions`
+
+#### 3. terraform apply（shared）
+
+```bash
+cd infrastructure/environments/shared
+cp backend.tf.example backend.tf   # バケット名等を記入
+terraform init
+terraform apply
+```
+
+→ OIDC Provider + IAM Role が作成される。
+
+#### 4. `frontend/package.json` に typecheck スクリプトがあることを確認
+
+```json
+{
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+#### 5. 動作確認
+
+```bash
+# feature ブランチを作成して PR を出す → ci.yml が起動することを確認
+git checkout -b test/ci-check
+git push origin test/ci-check
+# PR 作成 → GitHub Actions の CI を確認
+
+# main merge 後 → deploy-stg.yml が起動することを確認
+# stg 検証後
+git tag v0.1.0
+git push origin v0.1.0
+# → deploy-prod.yml が起動することを確認
+```
 
 ---
 
