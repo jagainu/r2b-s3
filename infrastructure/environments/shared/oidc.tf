@@ -61,7 +61,7 @@ resource "aws_iam_policy" "ecr_push" {
 # ─────────────────────────────────────────────────────────────
 
 locals {
-  github_repo = "makoto/r2b-s3"
+  github_repo = "jagainu/r2b-s3"
 }
 
 resource "aws_iam_role" "github_actions_stg" {
