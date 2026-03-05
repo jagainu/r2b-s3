@@ -16,6 +16,7 @@ RUN uv sync --frozen --no-dev
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
+COPY scripts/ ./scripts/
 
 # ─────────────────────────────────────────────────────────────
 # Stage 2: runtime
@@ -34,6 +35,7 @@ COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appgroup /app/app /app/app
 COPY --from=builder --chown=appuser:appgroup /app/alembic /app/alembic
 COPY --from=builder --chown=appuser:appgroup /app/alembic.ini /app/alembic.ini
+COPY --from=builder --chown=appuser:appgroup /app/scripts /app/scripts
 
 # venv の Python を使用
 ENV PATH="/app/.venv/bin:$PATH"
