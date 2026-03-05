@@ -64,3 +64,9 @@ variable "db_username" {
   type        = string
   default     = "catbreed"
 }
+
+variable "db_password" {
+  description = "データベースパスワード（TF_VAR_db_password で注入する。Git には含めない）"
+  type        = string
+  sensitive   = true
+}

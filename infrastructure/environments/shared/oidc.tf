@@ -26,7 +26,7 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
 
 resource "aws_iam_policy" "ecr_push" {
   name        = "github-actions-ecr-push"
-  description = "GitHub Actions から ECR に Docker image を push する権限"
+  description = "GitHub Actions ECR push policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -61,13 +61,12 @@ resource "aws_iam_policy" "ecr_push" {
 # ─────────────────────────────────────────────────────────────
 
 locals {
-  # TODO: 自分のリポジトリに変更する（owner/repo 形式）
-  github_repo = "YOUR_ORG/r2b-s3"
+  github_repo = "makoto/r2b-s3"
 }
 
 resource "aws_iam_role" "github_actions_stg" {
   name        = "github-actions-stg"
-  description = "GitHub Actions → stg ECS デプロイ用 Role"
+  description = "GitHub Actions Role for stg ECS deploy"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -146,7 +145,7 @@ resource "aws_iam_role_policy" "stg_ecs" {
 
 resource "aws_iam_role" "github_actions_prod" {
   name        = "github-actions-prod"
-  description = "GitHub Actions → prod ECS デプロイ用 Role（タグ push 時のみ）"
+  description = "GitHub Actions Role for prod ECS deploy (tag push only)"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

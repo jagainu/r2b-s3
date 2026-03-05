@@ -157,10 +157,11 @@ module "alb" {
 
   target_groups = {
     backend = {
-      name        = "${var.project_name}-stg-tg"
-      protocol    = "HTTP"
-      port        = 8000
-      target_type = "ip"
+      name              = "${var.project_name}-stg-tg"
+      protocol          = "HTTP"
+      port              = 8000
+      target_type       = "ip"
+      create_attachment = false # ECS Fargate attaches targets dynamically
       health_check = {
         path                = "/api/v1/health"
         healthy_threshold   = 2
@@ -215,14 +216,14 @@ module "ecs" {
           essential = true
 
           port_mappings = [{
-            container_port = 8000
-            protocol       = "tcp"
+            containerPort = 8000
+            hostPort      = 8000
+            protocol      = "tcp"
           }]
 
           environment = [
             { name = "ENVIRONMENT", value = "stg" },
-            # terraform apply 後に DATABASE_URL を設定する
-            # { name = "DATABASE_URL", value = "postgresql+asyncpg://user:pass@${module.rds.db_instance_address}/catbreed_stg" }
+            { name = "DATABASE_URL", value = "postgresql+asyncpg://${var.db_username}:${urlencode(var.db_password)}@${module.rds.db_instance_address}/${var.db_name}" },
           ]
 
           log_configuration = {
