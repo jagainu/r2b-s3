@@ -22,9 +22,8 @@ if config.config_file_name is not None:
 
 # DATABASE_URL を env から上書き
 database_url = os.environ.get("DATABASE_URL", "")
-# asyncpg ではなく psycopg を使うため、スキームを確認
-# alembic は同期接続が必要なため psycopg（非同期）のまま async_engine_from_config を使う
-config.set_main_option("sqlalchemy.url", database_url)
+# configparser は % を interpolation として解釈するため %% にエスケープする
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 # モデルの Base.metadata を設定（autogenerate 用）
 from app.models import Base  # noqa: E402
