@@ -42,8 +42,9 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           TAG: ${{ steps.meta.outputs.tag }}
         run: |
-          docker build -t "$REGISTRY/$ECR_REPOSITORY:$TAG" backend/
+          docker build -t "$REGISTRY/$ECR_REPOSITORY:$TAG" -t "$REGISTRY/$ECR_REPOSITORY:latest" backend/
           docker push "$REGISTRY/$ECR_REPOSITORY:$TAG"
+          docker push "$REGISTRY/$ECR_REPOSITORY:latest"
 
   migrate:
     name: Run DB Migration (stg)
