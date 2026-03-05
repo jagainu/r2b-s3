@@ -223,7 +223,7 @@ module "ecs" {
 
           environment = [
             { name = "ENVIRONMENT", value = "stg" },
-            { name = "DATABASE_URL", value = "postgresql+asyncpg://${var.db_username}:${urlencode(var.db_password)}@${module.rds.db_instance_address}/${var.db_name}" },
+            { name = "DATABASE_URL", value = "postgresql+psycopg://${var.db_username}:${urlencode(var.db_password)}@${module.rds.db_instance_address}/${var.db_name}" },
           ]
 
           log_configuration = {
