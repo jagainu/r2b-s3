@@ -7,8 +7,7 @@ __pycache__/
 dist/
 
 # uv
-uv.lock
-~/
+# uv.lock is committed for reproducible builds (needed by Dockerfile)
 
 # Environment
 .env
