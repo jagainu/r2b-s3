@@ -26,18 +26,14 @@ export function QuizProgress({
           mb: 1,
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" fontWeight={500}>
           {"問題"}
         </Typography>
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6" fontWeight={700} color="primary">
           {`${currentQuestion} / ${totalQuestions}`}
         </Typography>
       </Box>
-      <LinearProgress
-        variant="determinate"
-        value={progress}
-        sx={{ height: 8, borderRadius: 4 }}
-      />
+      <LinearProgress variant="determinate" value={progress} />
     </Box>
   );
 }

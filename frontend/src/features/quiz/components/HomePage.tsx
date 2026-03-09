@@ -1,7 +1,8 @@
 "use client";
 
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
+import Typography from "@mui/material/Typography";
+import PetsIcon from "@mui/icons-material/Pets";
 import { StartQuizButton } from "./StartQuizButton";
 import { TodayQuizCard } from "./TodayQuizCard";
 import { useUserStats } from "../hooks";
@@ -13,27 +14,26 @@ export function HomePage() {
 
   return (
     <Box>
-      {/* 統計バッジ */}
-      {learnedCount > 0 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-          <Chip
-            label={`${learnedCount}種類覚えた!`}
-            color="primary"
-            variant="filled"
-            sx={{ fontSize: "1rem", py: 2, px: 1 }}
-          />
+      {/* ヘッダー */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+          <PetsIcon sx={{ color: "primary.main", fontSize: 22 }} />
+          <Typography variant="h5" fontWeight={700} sx={{ color: "text.primary" }}>
+            ねこ図鑑クイズ
+          </Typography>
         </Box>
-      )}
+        <Typography variant="body2" color="text.secondary">
+          {learnedCount > 0 ? `${learnedCount}種類の猫を覚えました` : "猫の種類を学んでみよう"}
+        </Typography>
+      </Box>
 
       {/* クイズ開始 */}
-      <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <StartQuizButton />
       </Box>
 
       {/* 今日の一匹 */}
-      <Box sx={{ display: "flex", justifyContent: "center" }}>
-        <TodayQuizCard />
-      </Box>
+      <TodayQuizCard />
     </Box>
   );
 }

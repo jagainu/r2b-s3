@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import type { GetCatBreedsApiV1CatBreedsGetParams } from "@/shared/api/generated";
 import { useCatBreeds } from "../hooks";
 import { CatBreedCard } from "./CatBreedCard";
@@ -33,9 +34,12 @@ export function CatBreedList() {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" fontWeight="bold" mb={3}>
-        {"猫図鑑"}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+        <MenuBookRoundedIcon sx={{ color: "primary.main", fontSize: 24 }} />
+        <Typography variant="h5" component="h1" fontWeight={700}>
+          {"猫図鑑"}
+        </Typography>
+      </Box>
 
       <CatBreedFilters filters={filters} onFilterChange={setFilters} />
 

@@ -3,7 +3,7 @@ import { CatBreedList } from "@/features/cat-breeds";
 
 export default function CatBreedsPage() {
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ px: 2, pt: 3, pb: 2 }}>
       <CatBreedList />
     </Box>
   );
