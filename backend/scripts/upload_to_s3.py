@@ -64,6 +64,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="実際にアップロード・DB更新はせず、対象ファイルのみ表示する",
     )
+    parser.add_argument(
+        "--skip-s3",
+        action="store_true",
+        help="S3 アップロードをスキップして DB 更新のみ実行する（ECS タスク内で使用）",
+    )
     return parser.parse_args()
 
 
@@ -122,41 +127,64 @@ async def main() -> None:
     cloudfront_base = f"https://{args.cloudfront_domain}"
     print(f"S3 バケット   : {args.bucket}")
     print(f"CloudFront URL: {cloudfront_base}")
-    print(f"画像ディレクトリ: {IMAGES_DIR}")
-    if args.dry_run:
+    if args.skip_s3:
+        print("*** --skip-s3 モード（S3 アップロードをスキップ、DB 更新のみ）***")
+    elif args.dry_run:
+        print(f"画像ディレクトリ: {IMAGES_DIR}")
         print("*** DRY RUN モード（実際の変更はしません）***")
+    else:
+        print(f"画像ディレクトリ: {IMAGES_DIR}")
     print()
 
-    if not IMAGES_DIR.exists():
-        print(f"ERROR: 画像ディレクトリが見つかりません: {IMAGES_DIR}")
-        print("先に fetch_cat_images.py を実行してください")
-        sys.exit(1)
+    s3 = None
+    if not args.skip_s3:
+        if not IMAGES_DIR.exists():
+            print(f"ERROR: 画像ディレクトリが見つかりません: {IMAGES_DIR}")
+            print("先に fetch_cat_images.py を実行してください")
+            sys.exit(1)
 
-    # S3 クライアントの初期化
-    if not args.dry_run:
-        try:
-            s3 = boto3.client("s3", region_name=args.region)
-            # バケットの存在確認
-            s3.head_bucket(Bucket=args.bucket)
-        except NoCredentialsError:
-            print("ERROR: AWS 認証情報が設定されていません")
-            print("  ~/.aws/credentials または環境変数 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY を設定してください")
-            sys.exit(1)
-        except ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            if error_code == "404":
-                print(f"ERROR: S3 バケット '{args.bucket}' が見つかりません")
-                print("Terraform で shared インフラを apply 済みか確認してください")
-            else:
-                print(f"ERROR: S3 接続エラー: {e}")
-            sys.exit(1)
+        # S3 クライアントの初期化
+        if not args.dry_run:
+            try:
+                s3 = boto3.client("s3", region_name=args.region)
+                # バケットの存在確認
+                s3.head_bucket(Bucket=args.bucket)
+            except NoCredentialsError:
+                print("ERROR: AWS 認証情報が設定されていません")
+                print("  ~/.aws/credentials または環境変数 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY を設定してください")
+                sys.exit(1)
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                if error_code == "404":
+                    print(f"ERROR: S3 バケット '{args.bucket}' が見つかりません")
+                    print("Terraform で shared インフラを apply 済みか確認してください")
+                else:
+                    print(f"ERROR: S3 接続エラー: {e}")
+                sys.exit(1)
+
+    # --skip-s3 の場合は DB に登録済みの猫種一覧から取得
+    if args.skip_s3:
+        from app.core.database import AsyncSessionLocal as _Session
+        async with _Session() as _sess:
+            result = await _sess.execute(select(CatBreed))
+            breed_names = [b.name for b in result.scalars().all()]
+        breed_dirs_iter = [(name, None) for name in sorted(breed_names)]
+    else:
+        breed_dirs_iter = [(d.name, d) for d in sorted(IMAGES_DIR.iterdir()) if d.is_dir()]
 
     total_uploaded = 0
     total_db_updated = 0
-    breed_dirs = sorted([d for d in IMAGES_DIR.iterdir() if d.is_dir()])
 
-    for breed_dir in breed_dirs:
-        breed_name = breed_dir.name
+    for breed_name, breed_dir in breed_dirs_iter:
+        new_base_url = f"{cloudfront_base}/{S3_PREFIX}/{breed_name}"
+
+        if args.skip_s3:
+            # S3 スキップ: DB 更新のみ
+            n = await update_db_url(breed_name, f"/static/cat_images/{breed_name}", new_base_url)
+            total_db_updated += n
+            print(f"  {breed_name}: DB {n} 件更新")
+            continue
+
         images = sorted(breed_dir.glob("*.jpg")) + sorted(breed_dir.glob("*.png"))
 
         if not images:
@@ -168,7 +196,6 @@ async def main() -> None:
         uploaded_count = 0
         for img_path in images:
             s3_key = f"{S3_PREFIX}/{breed_name}/{img_path.name}"
-            cf_url = f"{cloudfront_base}/{s3_key}"
 
             if args.dry_run:
                 print(f"    [DRY] {img_path.name} -> s3://{args.bucket}/{s3_key}")
@@ -182,8 +209,6 @@ async def main() -> None:
 
         total_uploaded += uploaded_count
 
-        # DB 更新
-        new_base_url = f"{cloudfront_base}/{S3_PREFIX}/{breed_name}"
         if args.dry_run:
             print(f"    [DRY] DB photo_url -> {new_base_url}/{{filename}}")
         else:
@@ -192,8 +217,9 @@ async def main() -> None:
             print(f"    DB: {n} 件更新")
 
     print()
-    print(f"完了!")
-    print(f"  アップロード: {total_uploaded} 枚")
+    print("完了!")
+    if not args.skip_s3:
+        print(f"  アップロード: {total_uploaded} 枚")
     if not args.dry_run:
         print(f"  DB 更新     : {total_db_updated} 件")
     print()
