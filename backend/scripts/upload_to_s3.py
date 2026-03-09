@@ -83,11 +83,11 @@ def upload_file(s3_client, local_path: Path, bucket: str, s3_key: str) -> bool:
         return False
 
 
-async def update_db_url(breed_name: str, old_prefix: str, new_base_url: str) -> int:
+async def update_db_url(breed_name: str, old_prefix: str, new_base_url: str, s3_files: list[str] | None = None) -> int:
     """
     指定猫種の photo_url を新しい CloudFront URL に更新する。
-    old_prefix: "/static/cat_images/{breed_name}/" など既存のパスプレフィックス
-    new_base_url: "https://{cloudfront_domain}/cat_images/{breed_name}"
+    s3_files: S3 上のファイル名リスト（display_order 順に対応）。
+              指定した場合は display_order に基づいてファイル名を割り当てる。
     """
     updated = 0
     async with AsyncSessionLocal() as session:
@@ -99,12 +99,15 @@ async def update_db_url(breed_name: str, old_prefix: str, new_base_url: str) -> 
             return 0
 
         result = await session.execute(
-            select(CatPhoto).where(CatPhoto.cat_breed_id == breed.id)
+            select(CatPhoto).where(CatPhoto.cat_breed_id == breed.id).order_by(CatPhoto.display_order)
         )
         photos = result.scalars().all()
 
-        for photo in photos:
-            filename = Path(photo.photo_url).name
+        for i, photo in enumerate(photos):
+            if s3_files and i < len(s3_files):
+                filename = s3_files[i]
+            else:
+                filename = Path(photo.photo_url).name
             new_url = f"{new_base_url}/{filename}"
             photo.photo_url = new_url
             updated += 1
@@ -164,12 +167,14 @@ async def main() -> None:
 
     # --skip-s3 の場合は DB に登録済みの猫種一覧から取得
     if args.skip_s3:
+        s3_client = boto3.client("s3", region_name=args.region)
         from app.core.database import AsyncSessionLocal as _Session
         async with _Session() as _sess:
             result = await _sess.execute(select(CatBreed))
             breed_names = [b.name for b in result.scalars().all()]
         breed_dirs_iter = [(name, None) for name in sorted(breed_names)]
     else:
+        s3_client = None
         breed_dirs_iter = [(d.name, d) for d in sorted(IMAGES_DIR.iterdir()) if d.is_dir()]
 
     total_uploaded = 0
@@ -179,10 +184,17 @@ async def main() -> None:
         new_base_url = f"{cloudfront_base}/{S3_PREFIX}/{breed_name}"
 
         if args.skip_s3:
-            # S3 スキップ: DB 更新のみ
-            n = await update_db_url(breed_name, f"/static/cat_images/{breed_name}", new_base_url)
+            # S3 からファイルリストを取得して display_order 順に対応付け
+            s3_prefix = f"{S3_PREFIX}/{breed_name}/"
+            response = s3_client.list_objects_v2(Bucket=args.bucket, Prefix=s3_prefix)
+            s3_files = sorted(
+                obj["Key"].removeprefix(s3_prefix)
+                for obj in response.get("Contents", [])
+                if not obj["Key"].endswith("/")
+            )
+            n = await update_db_url(breed_name, f"/static/cat_images/{breed_name}", new_base_url, s3_files)
             total_db_updated += n
-            print(f"  {breed_name}: DB {n} 件更新")
+            print(f"  {breed_name}: DB {n} 件更新 ({len(s3_files)} ファイル)")
             continue
 
         images = sorted(breed_dir.glob("*.jpg")) + sorted(breed_dir.glob("*.png"))
