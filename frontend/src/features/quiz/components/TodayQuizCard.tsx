@@ -98,26 +98,30 @@ export function TodayQuizCard() {
                 variant={isSelected ? "contained" : "outlined"}
                 onClick={() => handleChoiceClick(choice)}
                 disabled={!!selectedChoiceId || isPending}
-                sx={{ justifyContent: "flex-start", textTransform: "none" }}
+                sx={{
+                  justifyContent: "flex-start",
+                  textTransform: "none",
+                  p: data.question_type === "name_to_photo" ? 0 : undefined,
+                  overflow: "hidden",
+                }}
               >
                 {isPending && isSelected && (
                   <CircularProgress size={16} sx={{ mr: 1 }} />
                 )}
                 {data.question_type === "photo_to_name" ? choice.name : null}
-                {data.question_type === "name_to_photo" &&
-                  choice.photo_url && (
-                    <Box
-                      component="img"
-                      src={choice.photo_url}
-                      alt="選択肢"
-                      sx={{
-                        width: 60,
-                        height: 60,
-                        objectFit: "cover",
-                        borderRadius: 1,
-                      }}
-                    />
-                  )}
+                {data.question_type === "name_to_photo" && choice.photo_url && (
+                  <Box
+                    component="img"
+                    src={choice.photo_url}
+                    alt="選択肢"
+                    sx={{
+                      width: "100%",
+                      height: 100,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                )}
               </Button>
             );
           })}

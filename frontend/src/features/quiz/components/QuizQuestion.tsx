@@ -82,7 +82,9 @@ export function QuizQuestion({
               sx={{
                 justifyContent: "flex-start",
                 textTransform: "none",
-                py: 1.5,
+                py: question.question_type === "name_to_photo" ? 0 : 1.5,
+                px: question.question_type === "name_to_photo" ? 0 : undefined,
+                overflow: "hidden",
               }}
             >
               {isPending && isSelected && (
@@ -96,10 +98,10 @@ export function QuizQuestion({
                     src={choice.photo_url}
                     alt="選択肢"
                     sx={{
-                      width: 80,
-                      height: 80,
+                      width: "100%",
+                      height: 120,
                       objectFit: "cover",
-                      borderRadius: 1,
+                      display: "block",
                     }}
                   />
                 )}
