@@ -21,3 +21,4 @@ dist/
 *.pem
 npm-debug.log*
 bun.lockb
+.vercel
