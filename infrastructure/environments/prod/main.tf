@@ -157,10 +157,11 @@ module "alb" {
 
   target_groups = {
     backend = {
-      name        = "${var.project_name}-prod-tg"
-      protocol    = "HTTP"
-      port        = 8000
-      target_type = "ip"
+      name              = "${var.project_name}-prod-tg"
+      protocol          = "HTTP"
+      port              = 8000
+      target_type       = "ip"
+      create_attachment = false # ECS Fargate attaches targets dynamically
       health_check = {
         path                = "/api/v1/health"
         healthy_threshold   = 2
@@ -186,15 +187,6 @@ module "alb" {
 }
 
 # ─────────────────────────────────────────────────────────────
-# CloudWatch Logs（prod）
-# ─────────────────────────────────────────────────────────────
-
-resource "aws_cloudwatch_log_group" "backend" {
-  name              = "/ecs/${var.project_name}-prod-backend"
-  retention_in_days = 90 # prod はログを長期保持
-}
-
-# ─────────────────────────────────────────────────────────────
 # ECS（prod）
 # ─────────────────────────────────────────────────────────────
 
@@ -214,9 +206,13 @@ module "ecs" {
           image     = "${data.aws_ecr_repository.backend.repository_url}:${var.image_tag}"
           essential = true
 
+          cloudwatch_log_group_name              = "/ecs/${var.project_name}-prod-backend"
+          cloudwatch_log_group_retention_in_days = 90
+
           port_mappings = [{
-            container_port = 8000
-            protocol       = "tcp"
+            containerPort = 8000
+            hostPort      = 8000
+            protocol      = "tcp"
           }]
 
           environment = [
@@ -224,15 +220,6 @@ module "ecs" {
             # terraform apply 後に DATABASE_URL を設定する
             # { name = "DATABASE_URL", value = "postgresql+asyncpg://user:pass@${module.rds.db_instance_address}/catbreed_prod" }
           ]
-
-          log_configuration = {
-            log_driver = "awslogs"
-            options = {
-              awslogs-group         = aws_cloudwatch_log_group.backend.name
-              awslogs-region        = var.aws_region
-              awslogs-stream-prefix = "ecs"
-            }
-          }
         }
       }
 
