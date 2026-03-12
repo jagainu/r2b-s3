@@ -2,7 +2,7 @@ export default {
   api: {
     input: {
       // openapi.json はプロジェクトルートに生成される（backend/scripts/export_openapi.py で出力）
-      target: "../openapi.json",
+      target: "./openapi.json",
     },
     output: {
       target: "./src/shared/api/generated/index.ts",

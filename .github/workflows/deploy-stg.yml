@@ -148,6 +148,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Copy openapi.json for Vercel build
+        run: cp openapi.json frontend/openapi.json
+
       - name: Deploy to Vercel (frontend-stg)
         working-directory: frontend
         env:

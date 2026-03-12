@@ -10,7 +10,7 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
-    "orval": "orval",
+    "orval": "cp ../openapi.json ./openapi.json 2>/dev/null; orval",
     "orval:watch": "orval --watch",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
